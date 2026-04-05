@@ -1,3 +1,7 @@
 [submodule "frontend"]
 	path = frontend
 	url = https://github.com/minhuiiy/Clothes-Angular-Frontend.git
+	branch = main
+[submodule "Clothes-Angular-Frontend"]
+	path = Clothes-Angular-Frontend
+	url = https://github.com/minhuiiy/Clothes-Angular-Frontend.git

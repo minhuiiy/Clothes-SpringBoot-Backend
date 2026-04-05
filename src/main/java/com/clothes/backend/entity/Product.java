@@ -45,6 +45,21 @@ public class Product {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Builder.Default
+    @Column(name = "is_featured", nullable = false)
+    private boolean isFeatured = false;
+
+    @Builder.Default
+    @Column(name = "sold_count", nullable = false)
+    private int soldCount = 0;
+
+    @Column(name = "color")
+    private String color;
+
+    @Builder.Default
+    @Column(name = "discount_price", nullable = false)
+    private BigDecimal discountPrice = BigDecimal.ZERO;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
