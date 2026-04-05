@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Product {
 
     @Id
@@ -42,6 +44,21 @@ public class Product {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Builder.Default
+    @Column(name = "is_featured", nullable = false)
+    private boolean isFeatured = false;
+
+    @Builder.Default
+    @Column(name = "sold_count", nullable = false)
+    private int soldCount = 0;
+
+    @Column(name = "color")
+    private String color;
+
+    @Builder.Default
+    @Column(name = "discount_price", nullable = false)
+    private BigDecimal discountPrice = BigDecimal.ZERO;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
