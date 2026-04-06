@@ -21,7 +21,7 @@ services:
       - "3306:3306"
     environment:
       - MYSQL_DATABASE=clothes_db
-      - MYSQL_ROOT_PASSWORD=hon16062004
+      - MYSQL_ROOT_PASSWORD=005928
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -29,6 +29,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  frontend:
+    build: 
+      context: ./frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
 
 volumes:
   db_data:
