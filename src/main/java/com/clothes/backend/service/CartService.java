@@ -3,20 +3,13 @@ package com.clothes.backend.service;
 import com.clothes.backend.dto.request.CartItemRequest;
 import com.clothes.backend.dto.response.CartItemResponse;
 import com.clothes.backend.dto.response.CartResponse;
-import com.clothes.backend.entity.Cart;
-import com.clothes.backend.entity.CartItem;
-import com.clothes.backend.entity.Product;
-import com.clothes.backend.entity.User;
-import com.clothes.backend.repository.CartItemRepository;
-import com.clothes.backend.repository.CartRepository;
-import com.clothes.backend.repository.ProductRepository;
-import com.clothes.backend.repository.UserRepository;
+import com.clothes.backend.entity.*;
+import com.clothes.backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -31,7 +24,10 @@ public class CartService {
     private CartItemRepository cartItemRepository;
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductVariantRepository variantRepository;
+
+    @Autowired
+    private InventoryRepository inventoryRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -43,16 +39,23 @@ public class CartService {
 
     @Transactional
     public CartResponse addToCart(Long userId, CartItemRequest request) {
+        if (request.getVariantId() == null) {
+            throw new RuntimeException("Sản phẩm không hợp lệ (ID bị trống)");
+        }
+        
         Cart cart = getOrCreateCart(userId);
-        Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+        ProductVariant variant = variantRepository.findById(request.getVariantId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể sản phẩm với ID: " + request.getVariantId()));
 
-        if (product.getStock() < request.getQuantity()) {
-            throw new RuntimeException("Insufficient stock");
+        Inventory inventory = inventoryRepository.findByVariantId(variant.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin kho cho biến thể này"));
+
+        if (inventory.getQuantity() < request.getQuantity()) {
+            throw new RuntimeException("Sản phẩm này hiện đã hết hàng hoặc không đủ số lượng trong kho");
         }
 
         Optional<CartItem> existingItem = cart.getItems().stream()
-                .filter(item -> item.getProduct().getId().equals(request.getProductId()))
+                .filter(item -> item.getVariant().getId().equals(request.getVariantId()))
                 .findFirst();
 
         if (existingItem.isPresent()) {
@@ -61,7 +64,7 @@ public class CartService {
         } else {
             CartItem newItem = CartItem.builder()
                     .cart(cart)
-                    .product(product)
+                    .variant(variant)
                     .quantity(request.getQuantity())
                     .build();
             cart.getItems().add(newItem);
@@ -80,7 +83,10 @@ public class CartService {
             throw new RuntimeException("Unauthorized");
         }
 
-        if (cartItem.getProduct().getStock() < quantity) {
+        Inventory inventory = inventoryRepository.findByVariantId(cartItem.getVariant().getId())
+                .orElseThrow(() -> new RuntimeException("Inventory not found"));
+
+        if (inventory.getQuantity() < quantity) {
             throw new RuntimeException("Insufficient stock");
         }
 
@@ -111,7 +117,6 @@ public class CartService {
                     User user = userRepository.findById(userId).get();
                     Cart newCart = Cart.builder()
                             .user(user)
-                            .items(Collections.emptyList())
                             .build();
                     return cartRepository.save(newCart);
                 });
@@ -119,15 +124,19 @@ public class CartService {
 
     private CartResponse convertToResponse(Cart cart) {
         List<CartItemResponse> itemResponses = cart.getItems().stream()
-                .map(item -> CartItemResponse.builder()
-                        .id(item.getId())
-                        .productId(item.getProduct().getId())
-                        .productName(item.getProduct().getName())
-                        .imageUrl(item.getProduct().getImageUrl())
-                        .price(item.getProduct().getPrice())
-                        .quantity(item.getQuantity())
-                        .subTotal(item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                        .build())
+                .map(item -> {
+                    Product product = item.getVariant().getProduct();
+                    BigDecimal price = product.getPrice().add(item.getVariant().getAdditionalPrice());
+                    return CartItemResponse.builder()
+                            .id(item.getId())
+                            .productId(product.getId())
+                            .productName(product.getName() + " (" + item.getVariant().getSize() + ", " + item.getVariant().getColor() + ")")
+                            .imageUrl(product.getImageUrl())
+                            .price(price)
+                            .quantity(item.getQuantity())
+                            .subTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())))
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         BigDecimal totalAmount = itemResponses.stream()

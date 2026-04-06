@@ -7,12 +7,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "categories")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Category {
 
     @Id
@@ -24,6 +27,9 @@ public class Category {
 
     @Column(unique = true, nullable = false)
     private String slug;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Column(name = "image_url")
     private String imageUrl;
@@ -40,5 +46,13 @@ public class Category {
     @JsonProperty("parent_id")
     public Long getParentId() {
         return parent != null ? parent.getId() : null;
+    }
+
+    public void setParentId(Long parentId) {
+        if (parentId == null) {
+            this.parent = null;
+        } else {
+            this.parent = Category.builder().id(parentId).build();
+        }
     }
 }
