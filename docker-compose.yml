@@ -10,7 +10,7 @@ services:
       - DB_PORT=3306
       - DB_NAME=clothes_db
       - DB_USER=root
-      - DB_PASSWORD=123456
+      - DB_PASSWORD=005928
     depends_on:
       mysqldb:
         condition: service_healthy
