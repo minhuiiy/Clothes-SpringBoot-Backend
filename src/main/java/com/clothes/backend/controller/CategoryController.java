@@ -133,4 +133,31 @@ public class CategoryController {
         if (slug == null) return "";
         return slug.toLowerCase(Locale.ROOT).trim();
     }
+
+    @PostMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Category> createCategory(@RequestBody Category category) {
+        return ResponseEntity.ok(categoryRepository.save(category));
+    }
+
+    @PutMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @RequestBody Category categoryDetails) {
+        return categoryRepository.findById(id).map(category -> {
+            category.setName(categoryDetails.getName());
+            category.setSlug(categoryDetails.getSlug());
+            category.setImageUrl(categoryDetails.getImageUrl());
+            category.setParentId(categoryDetails.getParentId());
+            return ResponseEntity.ok(categoryRepository.save(category));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        return categoryRepository.findById(id).map(category -> {
+            categoryRepository.delete(category);
+            return ResponseEntity.ok().<Void>build();
+        }).orElse(ResponseEntity.notFound().build());
+    }
 }

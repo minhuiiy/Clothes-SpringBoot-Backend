@@ -1,28 +1,30 @@
 package com.clothes.backend.controller;
 
+import com.clothes.backend.dto.request.ProductRequest;
+import com.clothes.backend.dto.response.ProductResponse;
 import com.clothes.backend.entity.Product;
-import com.clothes.backend.repository.ProductRepository;
+import com.clothes.backend.service.ProductService;
+import com.clothes.backend.service.ProductSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
-import org.springframework.data.jpa.domain.Specification;
-import com.clothes.backend.service.ProductSpecification;
-
 
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductService productService;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAllProducts(
@@ -31,25 +33,30 @@ public class ProductController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "newest") String sort,
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String categorySlug,
             @RequestParam(required = false) Long brandId,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) String color,
-            @RequestParam(required = false) Boolean isPromoted,
+            @RequestParam(required = false) String productSize,
             @RequestParam(required = false) Boolean isFeatured) {
             
         Sort sortOrder = getSortOrder(sort);
+        if (sortOrder == null) {
+            sortOrder = Sort.by("createdAt").descending();
+        }
         Pageable paging = PageRequest.of(page, size, sortOrder);
         
         Specification<Product> spec = Specification.where(ProductSpecification.hasName(keyword))
                 .and(ProductSpecification.hasCategory(categoryId))
+                .and(ProductSpecification.hasCategorySlug(categorySlug))
                 .and(ProductSpecification.hasBrand(brandId))
                 .and(ProductSpecification.hasColor(color))
-                .and(ProductSpecification.isPromoted(isPromoted))
+                .and(ProductSpecification.hasSize(productSize))
                 .and(ProductSpecification.isFeatured(isFeatured))
                 .and(ProductSpecification.hasPriceBetween(minPrice, maxPrice));
         
-        Page<Product> pageProducts = productRepository.findAll(spec, paging);
+        Page<ProductResponse> pageProducts = productService.getAllProducts(spec, paging);
 
         Map<String, Object> response = new HashMap<>();
         response.put("products", pageProducts.getContent());
@@ -61,7 +68,8 @@ public class ProductController {
     }
 
     private Sort getSortOrder(String sort) {
-        switch (sort) {
+        String sortKey = (sort == null) ? "newest" : sort;
+        switch (sortKey) {
             case "price_asc":
                 return Sort.by("price").ascending();
             case "price_desc":
@@ -83,9 +91,26 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        return productRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getProductById(id));
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductRequest productRequest) {
+        return ResponseEntity.ok(productService.createProduct(productRequest));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id, @RequestBody ProductRequest productRequest) {
+        return ResponseEntity.ok(productService.updateProduct(id, productRequest));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.ok().build();
     }
 }
