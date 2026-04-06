@@ -58,7 +58,8 @@ public class AuthController {
                 userDetails.getUsername(),
                 userDetails.getEmail(),
                 roles,
-                userDetails.getFullName()));
+                userDetails.getFullName(),
+                userDetails.getPhoneNumber()));
     }
 
     @PostMapping("/register")
@@ -81,6 +82,7 @@ public class AuthController {
                 .email(signUpRequest.getEmail())
                 .password(encoder.encode(signUpRequest.getPassword()))
                 .fullName(signUpRequest.getFullName())
+                .phoneNumber(signUpRequest.getPhoneNumber())
                 .role(Role.USER)
                 .build();
 
