@@ -1,0 +1,1 @@
+DELETE FROM users WHERE username='admin'; INSERT INTO users (id, username, password, email, full_name, role, phone_number, active, created_at, updated_at) VALUES (4, 'admin', '$2a$10$mhIS6bjSIcWffQGSywE9B.S6fGvTvrw2ip3zW2SCRgMsFQ17PmY7m', 'admin@trendybox.com', 'Admin System', 'ADMIN', '0123456789', 1, NOW(), NOW());

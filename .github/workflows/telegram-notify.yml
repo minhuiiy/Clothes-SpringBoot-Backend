@@ -1,0 +1,29 @@
+name: Telegram Push Notification
+
+on:
+  push:
+    branches:
+      - '**' # Kích hoạt cho mọi nhánh (branch)
+  pull_request:
+    types: [opened, synchronize] # Kích hoạt khi có Pull Request mới
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Gửi thông báo đến Telegram
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            📢 <b>Có cập nhật mã nguồn mới trên Github!</b> 📢
+            
+            👤 <b>Người thay đổi:</b> ${{ github.actor }}
+            🌿 <b>Nhánh (Branch):</b> ${{ github.ref_name }}
+            📝 <b>Tin nhắn Commit:</b> ${{ github.event.head_commit.message }}
+            
+            🔗 <a href="${{ github.event.head_commit.url }}">Xem chi tiết mã nguồn vừa sửa tại đây</a>
+          format: html
+          disable_web_page_preview: true

@@ -30,6 +30,9 @@ public class OrderService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private TelegramNotificationService telegramNotificationService;
+
     @Transactional
     public Order createOrder(Long userId, String shippingAddress, String phoneNumber, String note, String paymentMethod) {
         log.info("Starting order creation for user id: {}", userId);
@@ -105,6 +108,14 @@ public class OrderService {
             emailService.sendOrderConfirmationEmail(cart.getUser(), savedOrder);
         } catch (Exception e) {
             log.error("Failed to send confirmation email for order id: {}", savedOrder.getId(), e);
+        }
+
+        try {
+            String message = String.format("🎉 Đơn hàng mới! 🎉\nMã đơn: %d\nKhách: %s\nSĐT: %s\nTổng tiền: %s VNĐ",
+                    savedOrder.getId(), cart.getUser().getUsername(), savedOrder.getPhoneNumber(), savedOrder.getTotalAmount().toString());
+            telegramNotificationService.sendMessage(message);
+        } catch (Exception e) {
+            log.error("Failed to send telegram notification for order id: {}", savedOrder.getId(), e);
         }
 
         return savedOrder;
